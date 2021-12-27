@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, user-scalable=no">
+  <meta name="generator" content="made with love by dartdoc 4.1.0">
+  <meta name="description" content="pip_services3_swagger API docs, for the Dart programming language.">
+  <title>pip_services3_swagger - Dart API docs</title>
+
+
+  
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  
+  <link rel="stylesheet" href="static-assets/github.css?v1">
+  <link rel="stylesheet" href="static-assets/styles.css?v1">
+  <link rel="icon" href="static-assets/favicon.png?v1">
+
+  
+</head>
+
+
+<body data-base-href=""
+      data-using-base-href="false">
+
+<div id="overlay-under-drawer"></div>
+
+<header id="title">
+  <button id="sidenav-left-toggle" type="button">&nbsp;</button>
+  <ol class="breadcrumbs gt-separated dark hidden-xs">
+    <li><a href="https://github.com/pip-services3-dart/pip-services3-swagger-dart">pip_services3_swagger package</a></li>
+  </ol>
+  <div class="self-name">pip_services3_swagger</div>
+  <form class="search navbar-right" role="search">
+    <input type="text" id="search-box" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+</header>
+
+<main>
+
+
+  <div id="dartdoc-main-content" class="main-content">
+      
+<section class="desc markdown">
+  <h1 id="img-srchttpsuploads-sslwebflowcom5ea5d3315186cf5ec60c3ee45edf1c94ce4c859f2b188094_logosvg-altpipservices-logo-width200-br-swagger-ui-for-pipservices-in-dart"><img src="https://uploads-ssl.webflow.com/5ea5d3315186cf5ec60c3ee4/5edf1c94ce4c859f2b188094_logo.svg" alt="Pip.Services Logo" width="200"> &lt;br/&gt; Swagger UI for Pip.Services in Dart</h1>
+<p>This module is a part of the <a href="http://pipservices.org">Pip.Services</a> polyglot microservices toolkit.</p>
+<p>The swagger module provides a Swagger UI that can be added into microservices and seamlessly integrated with existing REST and Commandable HTTP services.</p>
+<p>The module contains the following packages:</p>
+<ul>
+<li><strong>Build</strong> - Swagger service factory</li>
+<li><strong>Services</strong> - Swagger UI service</li>
+</ul>
+<p><a name="links"></a> Quick links:</p>
+<ul>
+<li><a href="CHANGELOG.md">Change Log</a></li>
+<li><a href="https://www.pipservices.org/community/help">Get Help</a></li>
+<li><a href="https://www.pipservices.org/community/contribute">Contribute</a></li>
+</ul>
+<h2 id="use">Use</h2>
+<p>Add this to your package's pubspec.yaml file:</p>
+<pre class="language-yaml"><code class="language-yaml">dependencies:
+  pip_services3_swagger: version
+</code></pre>
+<p>Now you can install package from the command line:</p>
+<pre class="language-bash"><code class="language-bash">pub get
+</code></pre>
+<p>Develop a RESTful service component. For example, it may look the following way.
+In the <code>register</code> method we load an Open API specification for the service.
+You can also enable swagger by default in the constractor by setting <code>_swaggerEnable</code> property.</p>
+<pre class="language-dart"><code class="language-dart">class MyRestService extends RestService {
+  MyRestService() : super() {
+    baseRoute = 'myservice';
+    swaggerEnable = true;
+  }
+
+  FutureOr&lt;Response&gt; greeting(Request req) async {
+    var name = req.params['name'];
+    var response = 'Hello, ' + name.toString() + '!';
+    return sendResult(req, response);
+  }
+
+  void register() {
+    registerRoute(
+        'get',
+        '/greeting',
+        ObjectSchema(true).withRequiredProperty('name', TypeCode.String),
+        greeting);
+
+    registerOpenApiSpecFromFile('./src/services/myservice.yml');
+  }
+}
+</code></pre>
+<p>The Open API specification for the service shall be prepared either manually
+or using <a href="https://editor.swagger.io/">Swagger Editor</a></p>
+<pre class="language-yaml"><code class="language-yaml">openapi: '3.0.2'
+info:
+  title: 'MyService'
+  description: 'MyService REST API'
+  version: '1'
+paths:
+  /myservice/greeting:
+    get:
+      tags:
+        - myservice
+      operationId: 'greeting'
+      parameters:
+      - name: correlation_id
+        in: query
+        description: Correlation ID
+        required: false
+        schema:
+          type: string
+      - name: name
+        in: query
+        description: Name of a person
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: 'Successful response'
+          content:
+            application/json:
+              schema:
+                type: 'string'
+</code></pre>
+<p>Include Swagger service into <code>config.yml</code> file and enable swagger for your REST or Commandable HTTP services.
+Also explicitely adding HttpEndpoint allows to share the same port betwee REST services and the Swagger service.</p>
+<pre class="language-yaml"><code class="language-yaml">---
+...
+# Shared HTTP Endpoint
+- descriptor: "pip-services:endpoint:http:default:1.0"
+  connection:
+    protocol: http
+    host: localhost
+    port: 8080
+
+# Swagger Service
+- descriptor: "pip-services:swagger-service:http:default:1.0"
+
+# My RESTful Service
+- descriptor: "myservice:service:rest:default:1.0"
+  swagger:
+    enable: true
+</code></pre>
+<p>Finally, remember to add factories to your container, to allow it creating required components.</p>
+<pre class="language-dart"><code class="language-dart">...
+import 'package:pip_services3_container/pip_services3_container.dart';
+import 'package:pip_services3_rpc/pip_services3_rpc.dart';
+import 'package:pip_services3_swagger/pip_services3_swagger.dart';
+
+class MyProcess extends ProcessContainer {
+  MyProcess(): super('myservice', 'MyService microservice') {
+    
+    factories.add(DefaultRpcFactory());
+    factories.add(DefaultSwaggerFactory());
+    factories.add(MyServiceFactory());
+    ...
+  }
+}
+</code></pre>
+<p>Launch the microservice and open the browser to open the Open API specification at
+<a href="http://localhost:8080/greeting/swagger">http://localhost:8080/greeting/swagger</a></p>
+<p>Then open the Swagger UI using the link <a href="http://localhost:8080/swagger">http://localhost:8080/swagger</a>.
+The result shall look similar to the picture below.</p><img src="swagger-ui.png">
+<h2 id="develop">Develop</h2>
+<p>For development you shall install the following prerequisites:</p>
+<ul>
+<li>Dart SDK 2</li>
+<li>Visual Studio Code or another IDE of your choice</li>
+<li>Docker</li>
+</ul>
+<p>Install dependencies:</p>
+<pre class="language-bash"><code class="language-bash">pub get
+</code></pre>
+<p>Run automated tests:</p>
+<pre class="language-bash"><code class="language-bash">pub run test
+</code></pre>
+<p>Generate API documentation:</p>
+<pre class="language-bash"><code class="language-bash">./docgen.ps1
+</code></pre>
+<p>Before committing changes run dockerized build and test as:</p>
+<pre class="language-bash"><code class="language-bash">./build.ps1
+./test.ps1
+./clear.ps1
+</code></pre>
+<h2 id="contacts">Contacts</h2>
+<p>The Dart version of Pip.Services is created and maintained by:</p>
+<ul>
+<li><strong>Sergey Seroukhov</strong></li>
+<li><strong>Danil Prisiazhnyi</strong></li>
+</ul>
+<p>The documentation is written by:</p>
+<ul>
+<li><strong>Levichev Dmitry</strong></li>
+</ul>
+</section>
+
+
+      <section class="summary">
+          <h2>Libraries</h2>
+        <dl>
+          <dt id="pip_services3_swagger">
+  <span class="name"><a href="pip_services3_swagger/pip_services3_swagger-library.html">pip_services3_swagger</a></span> 
+
+</dt>
+<dd> 
+</dd>
+
+        </dl>
+      </section>
+
+  </div> <!-- /.main-content -->
+
+  <div id="dartdoc-sidebar-left" class="sidebar sidebar-offcanvas-left">
+    <header id="header-search-sidebar" class="hidden-l">
+  <form class="search-sidebar" role="search">
+    <input type="text" id="search-sidebar" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+</header>
+
+<ol class="breadcrumbs gt-separated dark hidden-l" id="sidebar-nav">
+  <li><a href="https://github.com/pip-services3-dart/pip-services3-swagger-dart">pip_services3_swagger package</a></li>
+</ol>
+
+
+    <h5 class="hidden-xs"><span class="package-name">pip_services3_swagger</span> <span class="package-kind">package</span></h5>
+    <ol>
+      <li class="section-title">Libraries</li>
+      <li><a href="pip_services3_swagger/pip_services3_swagger-library.html">pip_services3_swagger</a></li>
+</ol>
+
+  </div>
+
+  <div id="dartdoc-sidebar-right" class="sidebar sidebar-offcanvas-right">
+  </div>
+
+</main>
+
+<footer>
+  <span class="no-break">
+    pip_services3_swagger
+      1.0.0
+  </span>
+
+  
+</footer>
+
+
+
+<script src="static-assets/highlight.pack.js?v1"></script>
+<script src="static-assets/script.js?v1"></script>
+
+
+
+</body>
+
+</html>
+
