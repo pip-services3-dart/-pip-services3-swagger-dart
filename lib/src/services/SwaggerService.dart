@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:isolate';
 
 import 'package:pip_services3_rpc/pip_services3_rpc.dart';
 import 'package:shelf/shelf.dart';
@@ -13,8 +14,26 @@ class SwaggerService extends RestService implements ISwaggerService {
     baseRoute = 'swagger';
   }
 
-  String _calculateFilePath(String fileName) {
-    return Directory.current.path + '/lib/src/swagger-ui/' + fileName;
+  Future<Uri> _resolveUri(Uri uri) async {
+    if (uri.scheme == 'package') {
+      return Isolate.resolvePackageUri(uri).then((resolvedUri) {
+        if (resolvedUri == null) {
+          throw ArgumentError.value(uri, 'uri', 'Unknown package');
+        }
+
+        return resolvedUri;
+      });
+    }
+    var resolvedUri = Uri.base.resolveUri(uri);
+    return resolvedUri;
+  }
+
+  Future<Uri> _calculateFileUri(String fileName) async {
+    var packageUri =
+        Uri.parse('package:pip_services3_swagger/src/swagger-ui/' + fileName);
+    var fileUri = await _resolveUri(packageUri);
+
+    return fileUri;
   }
 
   String _calculateContentType(String fileName) {
@@ -33,38 +52,38 @@ class SwaggerService extends RestService implements ISwaggerService {
     }
   }
 
-  bool _checkFileExist(String? fileName) {
+  Future<bool> _checkFileExist(String? fileName) async {
     if (fileName == null) {
       return false;
     }
-    var path = _calculateFilePath(fileName);
-    return File(path).existsSync();
+    var uri = await _calculateFileUri(fileName);
+    return File.fromUri(uri).existsSync();
   }
 
-  dynamic _loadFileContent(String fileName) {
-    var path = _calculateFilePath(fileName);
+  Future _loadFileContent(String fileName) async {
+    var uri = await _calculateFileUri(fileName);
 
     if (fileName.split('.').last == 'png') {
-      return File(path).readAsBytesSync().toList();
+      return File.fromUri(uri).readAsBytesSync().toList();
     }
 
-    return File(path).readAsStringSync();
+    return File.fromUri(uri).readAsStringSync();
   }
 
   FutureOr<Response> _getSwaggerFile(Request req) async {
     var fileName = req.params['file_name']?.toLowerCase();
 
-    if (!_checkFileExist(fileName)) {
+    if (!await _checkFileExist(fileName)) {
       return Response.notFound(null);
     }
 
     return Response(200,
         headers: {'Content-Type': _calculateContentType(fileName!)},
-        body: _loadFileContent(fileName));
+        body: await _loadFileContent(fileName));
   }
 
   FutureOr<Response> _getIndex(Request req) async {
-    var content = _loadFileContent('index.html');
+    var content = await _loadFileContent('index.html');
 
     // Inject urls
     var urls = <Map>[];
