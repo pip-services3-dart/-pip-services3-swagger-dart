@@ -7,7 +7,7 @@ environment:
   sdk: ">=2.12.0 <3.0.0"
 
 dependencies:
-  pip_services3_commons: ^1.1.3
+  pip_services3_commons: ^1.1.6
   pip_services3_components: ^1.1.2
   pip_services3_rpc: ^1.2.3
 
